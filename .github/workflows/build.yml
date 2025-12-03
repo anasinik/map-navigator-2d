@@ -23,5 +23,8 @@ jobs:
         with:
           vs-version: "latest"
 
+      - name: Restore NuGet packages
+        run: nuget restore MapNavigator2D.sln
+
       - name: Build solution
         run: msbuild MapNavigator2D.sln /p:Configuration=Release /p:Platform=x64
