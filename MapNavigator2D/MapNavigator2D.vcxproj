@@ -129,12 +129,20 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\map.cpp" />
+    <ClCompile Include="src\util.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="shaders\fragment_shader.frag" />
+    <None Include="shaders\vertex_shader.vert" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="textures\novi-sad-map.jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\map.hpp" />
+    <ClInclude Include="include\util.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
