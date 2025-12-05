@@ -3,6 +3,7 @@
 
 #include "../include/util.hpp"
 #include "../include/map.hpp"
+#include "../include/overlay.hpp"
 
 int main()
 {
@@ -42,6 +43,7 @@ int main()
     glUniform1i(glGetUniformLocation(shaderProgram, "uTexture"), 0);
 
     Map map("textures/novi-sad-map.jpg");
+    Overlay overlay("textures/pin.png");
 
     bool walkingMode = true;
     map.viewFraction = 0.5f;
@@ -108,6 +110,7 @@ int main()
 
         int fbW, fbH;
         glfwGetFramebufferSize(window, &fbW, &fbH);
+        glUniform1i(glGetUniformLocation(shaderProgram, "uIgnoreTransform"), false);
         map.bindShaderTransform(shaderProgram, fbW, fbH);
 
         glUseProgram(shaderProgram);
@@ -115,6 +118,7 @@ int main()
         glBindTexture(GL_TEXTURE_2D, map.getTextureID());
         glBindVertexArray(map.getVAO());
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        overlay.drawPin(shaderProgram, fbW, fbH);
 
         std::ostringstream title;
         if (walkingMode)

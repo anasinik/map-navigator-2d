@@ -1,5 +1,7 @@
 ﻿#include "../include/map.hpp"
 #include "../include/util.hpp"
+#include "../include/overlay.hpp"
+
 #include <GLFW/glfw3.h>
 #include <sstream>
 #include <iostream>
