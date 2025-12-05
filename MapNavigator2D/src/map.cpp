@@ -6,12 +6,6 @@
 
 Map::Map(const std::string& texturePath) {
     textureID = loadImageToTexture(texturePath.c_str(), texWidth, texHeight);
-    if (textureID == 0) {
-        std::cout << "Failed to load map texture\n";
-        return;
-    }
-
-    std::cout << "Loaded texture size: " << texWidth << " x " << texHeight << std::endl;
 
     float vertices[] = {
         // positions    // tex coords
@@ -28,7 +22,7 @@ Map::Map(const std::string& texturePath) {
     glGenBuffers(1, &EBO);
 
     glBindVertexArray(VAO);
-
+    
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
@@ -43,6 +37,10 @@ Map::Map(const std::string& texturePath) {
     glBindVertexArray(0);
 }
 
+// TODO: implement destructor
+Map::~Map() {
+
+}
 
 void Map::draw() {
     glBindTexture(GL_TEXTURE_2D, textureID);
@@ -50,35 +48,50 @@ void Map::draw() {
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-void Map::move(float dx, float dy) {
-    offsetX += dx;
-    offsetY += dy;
-    // use for scroll
+void Map::movePixels(float dx, float dy) {
+    float dxNorm = dx / (float)texWidth;
+    float dyNorm = dy / (float)texHeight;
+
+    offsetX_norm += dxNorm;
+    offsetY_norm += dyNorm;
 }
+
 
 void Map::bindShaderTransform(unsigned int shaderProgram, int windowWidth, int windowHeight)
 {
-    float windowAspect = (float)windowWidth / windowHeight;
     float mapAspect = (float)texWidth / texHeight;
+    float windowAspect = (float)windowWidth / windowHeight;
 
-    float scaleX, scaleY;
-    float offsetX = 0.0f, offsetY = 0.0f;
+    float mapZoom = viewFraction;
+
+    float zoomX, zoomY;
 
     if (mapAspect > windowAspect) {
-        scaleX = 1.0f;
-        scaleY = windowAspect / mapAspect;
-        offsetY = 0.0f;
-    }
-    else {
-        scaleY = 1.0f;
-        scaleX = mapAspect / windowAspect;
-        offsetX = 0.0f;
+        zoomX = mapZoom;
+        zoomY = mapZoom * (windowAspect / mapAspect);
     }
 
-    int locScale = glGetUniformLocation(shaderProgram, "uScale");
-    int locOffset = glGetUniformLocation(shaderProgram, "uOffset");
+    else {
+        zoomY = mapZoom;
+        zoomX = mapZoom * (mapAspect / windowAspect);
+    }
+
+    float minX = zoomX / 2.0f;
+    float maxX = 1.0f - zoomX / 2.0f;
+
+    float minY = zoomY / 2.0f;
+    float maxY = 1.0f - zoomY / 2.0f;
+
+    if (offsetX_norm < minX) offsetX_norm = minX;
+    if (offsetX_norm > maxX) offsetX_norm = maxX;
+    if (offsetY_norm < minY) offsetY_norm = minY;
+    if (offsetY_norm > maxY) offsetY_norm = maxY;
 
     glUseProgram(shaderProgram);
-    glUniform2f(locScale, scaleX, scaleY);
-    glUniform2f(locOffset, offsetX, offsetY);
+    glUniform2f(glGetUniformLocation(shaderProgram, "uScale"), zoomX, zoomY);
+    glUniform2f(glGetUniformLocation(shaderProgram, "uOffset"), offsetX_norm, offsetY_norm);
+}
+
+void Map::setViewFraction(float vf) {
+    viewFraction = vf;
 }

@@ -5,24 +5,28 @@ using namespace std;
 
 class Map {
 private:
-    unsigned int VAO, VBO, EBO;
-    unsigned int textureID;
-
-    int texWidth = 0;
-    int texHeight = 0;
-
-    float offsetX = 0.0f;
-    float offsetY = 0.0f;
+    unsigned int textureID, VAO, VBO, EBO;
+    int texWidth = 0, texHeight = 0;
+    float offsetX = 0.0f, offsetY = 0.0f;
 
 public:
     Map(const string& texturePath);
+    ~Map();
 
     void draw();
-    void move(float dx, float dy);
+    void movePixels(float dx, float dy);
 
-    void bindShaderTransform(unsigned int shaderProgram,
-        int windowWidth, int windowHeight);
+    void bindShaderTransform(unsigned int shaderProgram, int windowWidth, int windowHeight);
 
     unsigned int getTextureID() const { return textureID; }
     unsigned int getVAO() const { return VAO; }
+    int getTexWidth() const { return texWidth; }
+    int getTexHeight() const { return texHeight; }
+    void setViewFraction(float vf);
+    
+    float offsetX_norm = 0.0f;
+    float offsetY_norm = 0.0f;
+    float viewFraction = 0.5f;
+    float moveSpeedPixels = 600.0f;
+    double walkedDistancePixels = 0.0;
 };

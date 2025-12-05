@@ -1,11 +1,16 @@
 #version 330 core
-
-out vec4 FragColor;
 in vec2 TexCoord;
+out vec4 FragColor;
 
 uniform sampler2D uTexture;
+uniform vec2 uScale;
+uniform vec2 uOffset;
 
 void main()
 {
-    FragColor = texture(uTexture, TexCoord);
+	vec2 uv = uOffset + (TexCoord - vec2(0.5)) * uScale;
+
+	if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) discard;
+	
+	FragColor = texture(uTexture, uv);
 }
