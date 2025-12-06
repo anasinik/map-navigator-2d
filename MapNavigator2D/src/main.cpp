@@ -57,6 +57,9 @@ int main()
     double lastTime = glfwGetTime();
     bool rWasPressed = false;
 
+    int fbW, fbH;
+    glfwGetFramebufferSize(window, &fbW, &fbH);
+
     while (!glfwWindowShouldClose(window))
     {
         double now = glfwGetTime();
@@ -80,17 +83,7 @@ int main()
             if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
                 dxPix += speed * deltaTime;
 
-            if (dxPix != 0.0f || dyPix != 0.0f)
-            {
-                float dxNorm = dxPix / (float)map.getTexWidth();
-                float dyNorm = dyPix / (float)map.getTexHeight();
-
-                map.offsetX_norm -= dxNorm;
-                map.offsetY_norm -= dyNorm;
-
-                double movedPixels = sqrt(dxPix * dxPix + dyPix * dyPix);
-                map.walkedDistancePixels += movedPixels;
-            }
+            map.walkedDistancePixels += map.applyMovementAndMeasure(dxPix, dyPix, fbW, fbH);
         }
 
 
@@ -108,8 +101,7 @@ int main()
 
         glClear(GL_COLOR_BUFFER_BIT);
 
-        int fbW, fbH;
-        glfwGetFramebufferSize(window, &fbW, &fbH);
+        
         glUniform1i(glGetUniformLocation(shaderProgram, "uIgnoreTransform"), false);
         map.bindShaderTransform(shaderProgram, fbW, fbH);
 

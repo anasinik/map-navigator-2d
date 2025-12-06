@@ -23,6 +23,7 @@ public:
     int getTexWidth() const { return texWidth; }
     int getTexHeight() const { return texHeight; }
     void setViewFraction(float vf);
+    double applyMovementAndMeasure(float dxPix, float dyPix, int windowWidth, int windowHeight);
     
     float offsetX_norm = 0.0f;
     float offsetY_norm = 0.0f;
