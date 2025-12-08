@@ -43,10 +43,9 @@ int main()
     glUniform1i(glGetUniformLocation(shaderProgram, "uTexture"), 0);
 
     Map map("textures/novi-sad-map.jpg");
-    Overlay overlay("textures/pin.png");
-
-    bool walkingMode = true;
+    Overlay overlay("textures/pin.png", "textures/walking_icon.png");
     map.viewFraction = 0.5f;
+    overlay.setWalkingMode(true);
 
     // initially centered
     map.offsetX_norm = 0.5f - map.viewFraction / 2.0f;
@@ -59,14 +58,15 @@ int main()
 
     int fbW, fbH;
     glfwGetFramebufferSize(window, &fbW, &fbH);
-
+    glViewport(0, 0, fbW, fbH);
+    
     while (!glfwWindowShouldClose(window))
     {
         double now = glfwGetTime();
         float deltaTime = (float)(now - lastTime);
         lastTime = now;
 
-        if (walkingMode)
+        if (overlay.isWalkingMode())
         {
             float dxPix = 0.0f, dyPix = 0.0f;
             float speed = map.moveSpeedPixels;
@@ -91,8 +91,8 @@ int main()
         {
             if (!rWasPressed)
             {
-                walkingMode = !walkingMode;
-                if (walkingMode) map.viewFraction = 0.5f;
+                overlay.setWalkingMode(!overlay.isWalkingMode());
+                if (overlay.isWalkingMode()) map.viewFraction = 0.5f;
                 else map.viewFraction = 1.0f;
             }
             rWasPressed = true;
@@ -110,14 +110,16 @@ int main()
         glBindTexture(GL_TEXTURE_2D, map.getTextureID());
         glBindVertexArray(map.getVAO());
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        overlay.drawPin(shaderProgram, fbW, fbH);
 
-        std::ostringstream title;
-        if (walkingMode)
-            title << "Mode: WALK | Distance: " << (int)map.walkedDistancePixels << " px";
-        else
-            title << "Mode: MEASURE (full map)";
-        glfwSetWindowTitle(window, title.str().c_str());
+        overlay.drawPin(shaderProgram, fbW, fbH);
+        overlay.drawWalkIcon(shaderProgram, fbW, fbH);
+        overlay.loadFont("fonts/arial.ttf", 24);
+
+        if (overlay.isWalkingMode()) {
+            overlay.drawFilledRect(120, fbH - 150, 300, 40, 0, 0, 0, fbW, fbH);
+            std::string dist = "DISTANCE: " + std::to_string((int)map.walkedDistancePixels) + " px";
+            overlay.drawText(dist.c_str(), 150, 140, 1.0f, 1, 1, 1, fbW, fbH);
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -127,3 +129,4 @@ int main()
     glfwTerminate();
     return 0;
 }
+

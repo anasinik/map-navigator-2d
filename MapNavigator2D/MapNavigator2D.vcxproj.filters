@@ -32,6 +32,8 @@
     <None Include="packages.config" />
     <None Include="shaders\vertex_shader.vert" />
     <None Include="shaders\fragment_shader.frag" />
+    <None Include="shaders\text.vert" />
+    <None Include="shaders\text.frag" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="textures\novi-sad-map.jpg">
