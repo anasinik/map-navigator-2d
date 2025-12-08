@@ -33,6 +33,11 @@ public:
     void setWalkingMode(bool b) { walkingMode = b; }
     bool isWalkingMode() const { return walkingMode; }
 
+    float walkIconX_px;
+    float walkIconY_px;
+    float walkIconWidth_px; 
+    float walkIconHeight_px;
+
 private:
     bool walkingMode = false;
 

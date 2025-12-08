@@ -55,6 +55,8 @@ int main()
     // MAIN LOOP
     double lastTime = glfwGetTime();
     bool rWasPressed = false;
+    double mouseX, mouseY;
+    static bool clickHandled = false;
 
     int fbW, fbH;
     glfwGetFramebufferSize(window, &fbW, &fbH);
@@ -71,21 +73,34 @@ int main()
             float dxPix = 0.0f, dyPix = 0.0f;
             float speed = map.moveSpeedPixels;
 
-            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-                dyPix -= speed * deltaTime;
-
-            if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-                dyPix += speed * deltaTime;
-
-            if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-                dxPix -= speed * deltaTime;
-
-            if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-                dxPix += speed * deltaTime;
+            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) dyPix -= speed * deltaTime;
+            if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) dyPix += speed * deltaTime;
+            if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) dxPix -= speed * deltaTime;
+            if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) dxPix += speed * deltaTime;
 
             map.walkedDistancePixels += map.applyMovementAndMeasure(dxPix, dyPix, fbW, fbH);
         }
 
+        static bool clickHandled = false;
+        glfwGetCursorPos(window, &mouseX, &mouseY);
+        float yFromTop = mouseY;
+
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+        {
+            if (!clickHandled &&
+                mouseX >= overlay.walkIconX_px &&
+                mouseX <= overlay.walkIconX_px + overlay.walkIconWidth_px &&
+                mouseY >= overlay.walkIconY_px &&
+                mouseY <= overlay.walkIconY_px + overlay.walkIconHeight_px)
+            {
+                overlay.setWalkingMode(!overlay.isWalkingMode());
+                if (overlay.isWalkingMode()) map.viewFraction = 0.5f;
+                else map.viewFraction = 1.0f;
+
+                clickHandled = true;
+            }
+        }
+        else clickHandled = false;
 
         if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
         {
@@ -99,9 +114,9 @@ int main()
         }
         else rWasPressed = false;
 
+        
         glClear(GL_COLOR_BUFFER_BIT);
 
-        
         glUniform1i(glGetUniformLocation(shaderProgram, "uIgnoreTransform"), false);
         map.bindShaderTransform(shaderProgram, fbW, fbH);
 
@@ -115,7 +130,8 @@ int main()
         overlay.drawWalkIcon(shaderProgram, fbW, fbH);
         overlay.loadFont("fonts/arial.ttf", 24);
 
-        if (overlay.isWalkingMode()) {
+        if (overlay.isWalkingMode())
+        {
             overlay.drawFilledRect(120, fbH - 150, 300, 40, 0, 0, 0, fbW, fbH);
             std::string dist = "DISTANCE: " + std::to_string((int)map.walkedDistancePixels) + " px";
             overlay.drawText(dist.c_str(), 150, 140, 1.0f, 1, 1, 1, fbW, fbH);
@@ -124,6 +140,7 @@ int main()
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
 
     glfwDestroyWindow(window);
     glfwTerminate();

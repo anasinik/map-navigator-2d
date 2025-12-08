@@ -116,11 +116,26 @@ void Overlay::drawWalkIcon(unsigned int shaderProgram, int windowWidth, int wind
     float cmLeft = 2.0f;
     float cmTop = 3.0f;
     float dpi = 96.0f;
+
     float pxLeft = cmLeft / 2.54f * dpi;
     float pxTop = cmTop / 2.54f * dpi;
 
-    float x = -1.0f + pxLeft / windowWidth * 2.0f; // NDC
-    float y = 1.0f - pxTop / windowHeight * 2.0f; // NDC
+    float iconWidth = 32.0f;
+    float iconHeight = 32.0f;
+
+    float x = -1.0f + pxLeft / windowWidth * 2.0f;
+    float y = 1.0f - pxTop / windowHeight * 2.0f;
+
+    walkIconX_px = pxLeft - iconWidth / 2.0f;
+    walkIconY_px = pxTop - iconHeight / 2.0f;
+    walkIconWidth_px = iconWidth;
+    walkIconHeight_px = iconHeight;
+
+    float padding = 5.0f;
+    walkIconX_px -= padding;
+    walkIconY_px -= padding;
+    walkIconWidth_px += 2 * padding;
+    walkIconHeight_px += 2 * padding;
 
     glUniform1i(glGetUniformLocation(shaderProgram, "uScreenIcon"), true);
     glUniform1i(glGetUniformLocation(shaderProgram, "uIgnoreTransform"), true);
@@ -133,6 +148,7 @@ void Overlay::drawWalkIcon(unsigned int shaderProgram, int windowWidth, int wind
     glUniform1i(glGetUniformLocation(shaderProgram, "uScreenIcon"), false);
     glUniform1i(glGetUniformLocation(shaderProgram, "uIgnoreTransform"), false);
 }
+
 
 void Overlay::drawText(const char* text,
     float x, float y,
