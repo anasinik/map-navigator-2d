@@ -68,6 +68,7 @@ int main()
         float deltaTime = (float)(now - lastTime);
         lastTime = now;
 
+        // WALKING MOVEMENT
         if (overlay.isWalkingMode())
         {
             float dxPix = 0.0f, dyPix = 0.0f;
@@ -81,9 +82,9 @@ int main()
             map.walkedDistancePixels += map.applyMovementAndMeasure(dxPix, dyPix, fbW, fbH);
         }
 
+        // MOUSE CLICK FOR WALK ICON
         static bool clickHandled = false;
         glfwGetCursorPos(window, &mouseX, &mouseY);
-        float yFromTop = mouseY;
 
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
         {
@@ -93,28 +94,56 @@ int main()
                 mouseY >= overlay.walkIconY_px &&
                 mouseY <= overlay.walkIconY_px + overlay.walkIconHeight_px)
             {
+                // SAVE OFFSET IF EXITING WALKING MODE
+                if (overlay.isWalkingMode())
+                {
+                    map.savedOffsetX = map.offsetX_norm;
+                    map.savedOffsetY = map.offsetY_norm;
+                    map.hasSavedOffset = true;
+                }
+
+                // TOGGLE MODE
                 overlay.setWalkingMode(!overlay.isWalkingMode());
-                if (overlay.isWalkingMode()) map.viewFraction = 0.5f;
-                else map.viewFraction = 1.0f;
+                map.viewFraction = overlay.isWalkingMode() ? 0.5f : 1.0f;
+
+                // RESTORE OFFSET IF RETURNING TO WALKING MODE
+                if (overlay.isWalkingMode() && map.hasSavedOffset)
+                {
+                    map.offsetX_norm = map.savedOffsetX;
+                    map.offsetY_norm = map.savedOffsetY;
+                }
 
                 clickHandled = true;
             }
         }
         else clickHandled = false;
 
+        // KEY R TO TOGGLE WALKING MODE
         if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
         {
             if (!rWasPressed)
             {
+                if (overlay.isWalkingMode())
+                {
+                    map.savedOffsetX = map.offsetX_norm;
+                    map.savedOffsetY = map.offsetY_norm;
+                    map.hasSavedOffset = true;
+                }
+
                 overlay.setWalkingMode(!overlay.isWalkingMode());
-                if (overlay.isWalkingMode()) map.viewFraction = 0.5f;
-                else map.viewFraction = 1.0f;
+                map.viewFraction = overlay.isWalkingMode() ? 0.5f : 1.0f;
+
+                if (overlay.isWalkingMode() && map.hasSavedOffset)
+                {
+                    map.offsetX_norm = map.savedOffsetX;
+                    map.offsetY_norm = map.savedOffsetY;
+                }
             }
             rWasPressed = true;
         }
         else rWasPressed = false;
 
-        
+        // RENDERING
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUniform1i(glGetUniformLocation(shaderProgram, "uIgnoreTransform"), false);
@@ -130,6 +159,7 @@ int main()
         overlay.drawWalkIcon(shaderProgram, fbW, fbH);
         overlay.loadFont("fonts/arial.ttf", 24);
 
+        // DISPLAY WALKING DISTANCE
         if (overlay.isWalkingMode())
         {
             overlay.drawFilledRect(120, fbH - 150, 300, 40, 0, 0, 0, fbW, fbH);
@@ -140,7 +170,6 @@ int main()
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
 
     glfwDestroyWindow(window);
     glfwTerminate();

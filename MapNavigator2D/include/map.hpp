@@ -30,4 +30,8 @@ public:
     float viewFraction = 0.5f;
     float moveSpeedPixels = 600.0f;
     double walkedDistancePixels = 0.0;
+
+    float savedOffsetX = 0.5f;
+    float savedOffsetY = 0.5f;
+    bool hasSavedOffset = false;
 };
