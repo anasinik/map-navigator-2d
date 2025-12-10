@@ -9,11 +9,12 @@
 
 class Overlay {
 public:
-    Overlay(const char* pinPath, const char* walkingIconPath);
+    Overlay(const char* pinPath, const char* walkingIconPath, const char* rulerIconPath);
     ~Overlay();
 
     void drawPin(unsigned int shaderProgram, int windowWidth, int windowHeight);
     void drawWalkIcon(unsigned int shaderProgram, int windowWidth, int windowHeight);
+    void drawRulerIcon(unsigned int shaderProgram, int windowWidth, int windowHeight);
     void drawText(const char* text,
         float x, float y,
         float scale,
@@ -24,6 +25,7 @@ public:
         int screenW, int screenH);
     bool loadFont(const char* path, int fontSize);
     void drawLine(float x1, float y1, float x2, float y2, int windowWidth, int windowHeight);
+    void drawFilledCircle(float cx, float cy, float radius, int segments, float r, float g, float b, int winW, int winH);
 
     struct FTCharacter {
         GLuint TextureID;
@@ -36,10 +38,10 @@ public:
     void setWalkingMode(bool b) { walkingMode = b; }
     bool isWalkingMode() const { return walkingMode; }
 
-    float walkIconX_px;
-    float walkIconY_px;
-    float walkIconWidth_px; 
-    float walkIconHeight_px;
+    float iconX_px = 0.0f;
+    float iconY_px = 0.0f;
+    float iconWidth_px = 0.0f; 
+    float iconHeight_px = 0.0f;
 
     void addMeasurementPoint(float x_norm, float y_norm, float mapWidth, float mapHeight);
     void removeMeasurementPointAt(float x_px, float y_px, float mapWidth, float mapHeight);
@@ -57,9 +59,10 @@ public:
 private:
     bool walkingMode = false;
 
-    unsigned int pinTextureID = 0, walkTextureID = 0;
+    unsigned int pinTextureID = 0, walkTextureID = 0, rulerTextureID = 0;
     unsigned int pinVAO = 0, pinVBO = 0, pinEBO = 0;
     unsigned int walkVAO = 0, walkVBO = 0, walkEBO = 0;
+    unsigned int rulerVAO = 0, rulerVBO = 0, rulerEBO = 0;
 
     // text
     unsigned int textVAO = 0, textVBO = 0;

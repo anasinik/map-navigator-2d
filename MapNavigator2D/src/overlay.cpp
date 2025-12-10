@@ -15,10 +15,11 @@ static GLuint createWhiteTexture() {
     return tex;
 }
 
-Overlay::Overlay(const char* pinPath, const char* walkingIconPath) {
+Overlay::Overlay(const char* pinPath, const char* walkingIconPath, const char* rulerIconPath) {
     int texW, texH;
     pinTextureID = loadImageToTexture(pinPath, texW, texH);
     walkTextureID = loadImageToTexture(walkingIconPath, texW, texH);
+    rulerTextureID = loadImageToTexture(rulerIconPath, texW, texH);
 
     float vertices[] = {
         -pinSize,-pinSize, 0.0f,0.0f,
@@ -52,6 +53,21 @@ Overlay::Overlay(const char* pinPath, const char* walkingIconPath) {
     glBindBuffer(GL_ARRAY_BUFFER, walkVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, walkEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glBindVertexArray(0);
+
+    // ruler icon
+    glGenVertexArrays(1, &rulerVAO);
+    glGenBuffers(1, &rulerVBO);
+    glGenBuffers(1, &rulerEBO);
+    glBindVertexArray(rulerVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, rulerVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rulerEBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
@@ -139,16 +155,16 @@ void Overlay::drawWalkIcon(unsigned int shaderProgram, int windowWidth, int wind
     float x = -1.0f + pxLeft / windowWidth * 2.0f;
     float y = 1.0f - pxTop / windowHeight * 2.0f;
 
-    walkIconX_px = pxLeft - iconWidth / 2.0f;
-    walkIconY_px = pxTop - iconHeight / 2.0f;
-    walkIconWidth_px = iconWidth;
-    walkIconHeight_px = iconHeight;
+    iconX_px = pxLeft - iconWidth / 2.0f;
+    iconY_px = pxTop - iconHeight / 2.0f;
+    iconWidth_px = iconWidth;
+    iconHeight_px = iconHeight;
 
     float padding = 5.0f;
-    walkIconX_px -= padding;
-    walkIconY_px -= padding;
-    walkIconWidth_px += 2 * padding;
-    walkIconHeight_px += 2 * padding;
+    iconX_px -= padding;
+    iconY_px -= padding;
+    iconWidth_px += 2 * padding;
+    iconHeight_px += 2 * padding;
 
     glUniform1i(glGetUniformLocation(shaderProgram, "uScreenIcon"), true);
     glUniform1i(glGetUniformLocation(shaderProgram, "uIgnoreTransform"), true);
@@ -156,6 +172,48 @@ void Overlay::drawWalkIcon(unsigned int shaderProgram, int windowWidth, int wind
 
     glBindVertexArray(walkVAO);
     glBindTexture(GL_TEXTURE_2D, walkTextureID);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+    glUniform1i(glGetUniformLocation(shaderProgram, "uScreenIcon"), false);
+    glUniform1i(glGetUniformLocation(shaderProgram, "uIgnoreTransform"), false);
+}
+
+void Overlay::drawRulerIcon(unsigned int shaderProgram, int windowWidth, int windowHeight)
+{
+    if (walkingMode) return;
+
+    glUseProgram(shaderProgram);
+
+    float cmLeft = 2.0f;
+    float cmTop = 3.0f;
+    float dpi = 96.0f;
+
+    float pxLeft = cmLeft / 2.54f * dpi;
+    float pxTop = cmTop / 2.54f * dpi;
+
+    float iconWidth = 32.0f;
+    float iconHeight = 32.0f;
+
+    float x = -1.0f + pxLeft / windowWidth * 2.0f;
+    float y = 1.0f - pxTop / windowHeight * 2.0f;
+
+    iconX_px = pxLeft - iconWidth / 2.0f;
+    iconY_px = pxTop - iconHeight / 2.0f;
+    iconWidth_px = iconWidth;
+    iconHeight_px = iconHeight;
+
+    float padding = 5.0f;
+    iconX_px -= padding;
+    iconY_px -= padding;
+    iconWidth_px += 2 * padding;
+    iconHeight_px += 2 * padding;
+
+    glUniform1i(glGetUniformLocation(shaderProgram, "uScreenIcon"), true);
+    glUniform1i(glGetUniformLocation(shaderProgram, "uIgnoreTransform"), true);
+    glUniform2f(glGetUniformLocation(shaderProgram, "uIconOffset"), x, y);
+
+    glBindVertexArray(rulerVAO);
+    glBindTexture(GL_TEXTURE_2D, rulerTextureID);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     glUniform1i(glGetUniformLocation(shaderProgram, "uScreenIcon"), false);
@@ -407,7 +465,8 @@ void Overlay::drawMeasurements(unsigned int shaderProgram, int winW, int winH)
         float x = measurementPoints[i].xNorm * winW;
         float y = measurementPoints[i].yNorm * winH;
 
-        drawFilledRect(x - 3, y - 3, 6, 6, 1.0f, 1.0f, 1.0f, winW, winH);
+        drawFilledCircle(x, y, pointRadius, 24, 1.0f, 1.0f, 1.0f, winW, winH);
+
 
         if (i > 0) {
             float x0 = measurementPoints[i - 1].xNorm * winW;
@@ -418,9 +477,6 @@ void Overlay::drawMeasurements(unsigned int shaderProgram, int winW, int winH)
         }
     }
 
-    // todo: add backgorund
-    drawText(("DISTANCE: " + std::to_string((int)totalMeasuredDistance) + " px").c_str(),
-        20, 50, 1.0f, 1, 1, 1, winW, winH);
 }
 
 
@@ -460,5 +516,38 @@ void Overlay::drawLine(float x1, float y1, float x2, float y2, int windowWidth, 
     glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+}
+
+void Overlay::drawFilledCircle(float cx, float cy, float radius, int segments, float r, float g, float b, int winW, int winH)
+{
+    glUseProgram(lineShader);
+    float proj[16] = {
+        2.0f / (float)winW, 0, 0, 0,
+        0, 2.0f / (float)winH, 0, 0,
+        0, 0, 1, 0,
+       -1, -1, 0, 1
+    };
+    glUniformMatrix4fv(glGetUniformLocation(lineShader, "uProjection"), 1, GL_FALSE, proj);
+    glUniform3f(glGetUniformLocation(lineShader, "uColor"), r, g, b);
+
+    std::vector<float> verts;
+    verts.push_back(cx);
+    verts.push_back(cy);
+
+    for (int i = 0; i <= segments; i++)
+    {
+        float theta = 2.0f * 3.1415926f * float(i) / float(segments);
+        float x = cx + radius * cosf(theta);
+        float y = cy + radius * sinf(theta);
+        verts.push_back(x);
+        verts.push_back(y);
+    }
+
+    glBindVertexArray(lineVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
+    glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(float), verts.data(), GL_DYNAMIC_DRAW);
+
+    glDrawArrays(GL_TRIANGLE_FAN, 0, (GLsizei)(verts.size() / 2));
     glBindVertexArray(0);
 }

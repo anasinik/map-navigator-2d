@@ -16,10 +16,12 @@ int main()
     GLFWmonitor* primary = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(primary);
 
-    GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "MapNavigator2D", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "MapNavigator2D", primary, NULL);
+
     if (!window) return endProgram("Window creation failed");
 
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
 
     if (glewInit() != GLEW_OK)
         return endProgram("GLEW init failed");
@@ -34,7 +36,7 @@ int main()
     glUniform1i(glGetUniformLocation(shaderProgram, "uTexture"), 0);
 
     Map map("textures/novi-sad-map.jpg");
-    Overlay overlay("textures/pin.png", "textures/walking_icon.png");
+    Overlay overlay("textures/pin.png", "textures/walking_icon.png", "textures/ruler.png");
     overlay.loadFont("fonts/arial.ttf", 24);
 
     map.viewFraction = 0.5f;
@@ -87,10 +89,10 @@ int main()
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
         {
             if (!clickHandled &&
-                mouseX >= overlay.walkIconX_px &&
-                mouseX <= overlay.walkIconX_px + overlay.walkIconWidth_px &&
-                mouseY >= overlay.walkIconY_px &&
-                mouseY <= overlay.walkIconY_px + overlay.walkIconHeight_px)
+                mouseX >= overlay.iconX_px &&
+                mouseX <= overlay.iconX_px + overlay.iconWidth_px &&
+                mouseY >= overlay.iconY_px &&
+                mouseY <= overlay.iconY_px + overlay.iconHeight_px)
             {
                 // save offset if exiting walking mode
                 if (overlay.isWalkingMode())
@@ -154,10 +156,10 @@ int main()
             if (!mapClickHandled)
             {
                 // ignore if click on walking icon?
-                if (!(mouseX >= overlay.walkIconX_px &&
-                    mouseX <= overlay.walkIconX_px + overlay.walkIconWidth_px &&
-                    mouseY >= overlay.walkIconY_px &&
-                    mouseY <= overlay.walkIconY_px + overlay.walkIconHeight_px))
+                if (!(mouseX >= overlay.iconX_px &&
+                    mouseX <= overlay.iconX_px + overlay.iconWidth_px &&
+                    mouseY >= overlay.iconY_px &&
+                    mouseY <= overlay.iconY_px + overlay.iconHeight_px))
                 {
                     if (map.viewFraction == 1.0f) // only if not in walking mode
                     {
@@ -194,6 +196,7 @@ int main()
 
         overlay.drawPin(shaderProgram, fbW, fbH);
         overlay.drawWalkIcon(shaderProgram, fbW, fbH);
+        overlay.drawRulerIcon(shaderProgram, fbW, fbH);
         overlay.drawMeasurements(shaderProgram, fbW, fbH);
 
         if (overlay.isWalkingMode())
@@ -202,11 +205,16 @@ int main()
             std::string dist = "DISTANCE: " + std::to_string((int)map.walkedDistancePixels) + " px";
             overlay.drawText(dist.c_str(), 150, 140, 1.0f, 1, 1, 1, fbW, fbH);
         }
+        else {
+            overlay.drawFilledRect(120, fbH - 150, 300, 40, 0, 0, 0, fbW, fbH);
+            overlay.drawText(("TOTAL: " + std::to_string((int)overlay.getTotalMeasuredDistance()) + " px").c_str(),
+                150, 140, 1.0f, 1, 1, 1, fbW, fbH);
+        }
 
         // AUTHOR
         overlay.drawFilledRect(fbW - 380 - 20, fbH - 1020 - 20, 380, 45, 0, 0, 0, fbW, fbH);
         std::string author = "ANA SINIK, SV11/2022";
-        overlay.drawText(author.c_str(), fbW - 380 - 20 + 15, fbH - 45 - 20 + 45 - 10, 1.0f, 1, 1, 1, fbW, fbH);
+        overlay.drawText(author.c_str(), fbW - 350 - 20 + 15, fbH - 45, 1.0f, 1, 1, 1, fbW, fbH);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
