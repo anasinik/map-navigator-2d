@@ -4,6 +4,8 @@
 #include FT_FREETYPE_H
 #include <string>
 #include <map>
+#include <vector>
+#include "../include/point.hpp"
 
 class Overlay {
 public:
@@ -21,6 +23,7 @@ public:
         float r, float g, float b,
         int screenW, int screenH);
     bool loadFont(const char* path, int fontSize);
+    void drawLine(float x1, float y1, float x2, float y2, int windowWidth, int windowHeight);
 
     struct FTCharacter {
         GLuint TextureID;
@@ -38,6 +41,19 @@ public:
     float walkIconWidth_px; 
     float walkIconHeight_px;
 
+    void addMeasurementPoint(float x_norm, float y_norm, float mapWidth, float mapHeight);
+    void removeMeasurementPointAt(float x_px, float y_px, float mapWidth, float mapHeight);
+
+    void drawMeasurements(unsigned int shaderProgram, int winW, int winH);
+    void setMeasurementMode(bool b) { measurementMode = b; }
+    bool isMeasurementMode() const { return measurementMode; }
+    float getTotalMeasuredDistance() const { return totalMeasuredDistance; }
+    void setTotalMeasuredDistance(float total) { this->totalMeasuredDistance = total; }
+    std::vector<MeasurementPoint> getMeasurementPoints() const { return measurementPoints; }
+
+    unsigned int lineShader = 0;
+    unsigned int lineVAO = 0, lineVBO = 0;
+ 
 private:
     bool walkingMode = false;
 
@@ -52,4 +68,10 @@ private:
 
     float pinSize = 0.05f;
     float iconSize = 0.5f;
+
+    std::vector<MeasurementPoint> measurementPoints;
+    float totalMeasuredDistance = 0.0f;
+
+    bool measurementMode = false;
+    float pointRadius = 6.0f;
 };

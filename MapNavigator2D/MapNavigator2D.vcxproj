@@ -142,16 +142,20 @@
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="shaders\fragment_shader.frag" />
+    <None Include="shaders\line.frag" />
+    <None Include="shaders\line.vert" />
     <None Include="shaders\text.frag" />
     <None Include="shaders\text.vert" />
     <None Include="shaders\vertex_shader.vert" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="textures\compas.png" />
     <Image Include="textures\novi-sad-map.jpg" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\map.hpp" />
     <ClInclude Include="include\overlay.hpp" />
+    <ClInclude Include="include\point.hpp" />
     <ClInclude Include="include\util.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

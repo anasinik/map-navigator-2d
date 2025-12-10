@@ -73,6 +73,19 @@ Overlay::Overlay(const char* pinPath, const char* walkingIconPath) {
 
     textShader = createShader("shaders/text.vert", "shaders/text.frag");
     whiteTexture = createWhiteTexture();
+
+
+    // line VAO/VBO
+    lineShader = createShader("shaders/line.vert", "shaders/line.frag");
+
+    glGenVertexArrays(1, &lineVAO);
+    glGenBuffers(1, &lineVBO);
+    glBindVertexArray(lineVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 2, NULL, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
 }
 
 Overlay::~Overlay() {
@@ -345,4 +358,107 @@ void Overlay::drawFilledRect(float x, float y, float w, float h,
 
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+
+void Overlay::addMeasurementPoint(float xNorm, float yNorm, float mapWidth, float mapHeight)
+{
+    MeasurementPoint newPoint{ xNorm, yNorm };
+
+    if (!measurementPoints.empty()) {
+        MeasurementPoint prev = measurementPoints.back();
+
+        float dx = (newPoint.xNorm - prev.xNorm) * mapWidth;
+        float dy = (newPoint.yNorm - prev.yNorm) * mapHeight;
+
+        totalMeasuredDistance += sqrt(dx * dx + dy * dy);
+    }
+
+    measurementPoints.push_back(newPoint);
+}
+
+void Overlay::removeMeasurementPointAt(float x_px, float y_px, float mapWidth, float mapHeight)
+{
+    for (size_t i = 0; i < measurementPoints.size(); ++i) {
+        float px = measurementPoints[i].xNorm * mapWidth;
+        float py = measurementPoints[i].yNorm * mapHeight;
+
+        float dx = x_px - px;
+        float dy = y_px - py;
+
+        if (sqrt(dx * dx + dy * dy) <= pointRadius) {
+            measurementPoints.erase(measurementPoints.begin() + i);
+
+            totalMeasuredDistance = 0.0f;
+            for (size_t j = 1; j < measurementPoints.size(); ++j) {
+                float dx = (measurementPoints[j].xNorm - measurementPoints[j - 1].xNorm) * mapWidth;
+                float dy = (measurementPoints[j].yNorm - measurementPoints[j - 1].yNorm) * mapHeight;
+                totalMeasuredDistance += sqrt(dx * dx + dy * dy);
+            }
+            break;
+        }
+    }
+}
+
+
+void Overlay::drawMeasurements(unsigned int shaderProgram, int winW, int winH)
+{
+    for (size_t i = 0; i < measurementPoints.size(); i++) {
+        float x = measurementPoints[i].xNorm * winW;
+        float y = measurementPoints[i].yNorm * winH;
+
+        drawFilledRect(x - 3, y - 3, 6, 6, 1.0f, 1.0f, 1.0f, winW, winH);
+
+        if (i > 0) {
+            float x0 = measurementPoints[i - 1].xNorm * winW;
+            float y0 = measurementPoints[i - 1].yNorm * winH;
+
+
+            drawLine(x0, y0, x, y, winW, winH);
+        }
+    }
+
+    // todo: add backgorund
+    drawText(("DISTANCE: " + std::to_string((int)totalMeasuredDistance) + " px").c_str(),
+        20, 50, 1.0f, 1, 1, 1, winW, winH);
+}
+
+
+void Overlay::drawLine(float x1, float y1, float x2, float y2, int windowWidth, int windowHeight)
+{
+    glUseProgram(lineShader);
+
+    float proj[16] = {
+        2.0f / windowWidth, 0, 0, 0,
+        0, 2.0f / windowHeight, 0, 0,
+        0, 0, 1, 0,
+       -1, -1, 0, 1
+    };
+    glUniformMatrix4fv(glGetUniformLocation(lineShader, "uProjection"), 1, GL_FALSE, proj);
+    glUniform3f(glGetUniformLocation(lineShader, "uColor"), 1.0f, 0.0f, 0.0f); // crvena linija
+
+    float thickness = 5.0f;
+    float dx = x2 - x1;
+    float dy = y2 - y1;
+    float len = sqrt(dx * dx + dy * dy);
+    if (len < 0.0001f) return;
+
+    float nx = -dy / len * thickness * 0.5f;
+    float ny = dx / len * thickness * 0.5f;
+
+    float verts[6][2] = {
+        { x1 + nx, y1 + ny },
+        { x2 + nx, y2 + ny },
+        { x2 - nx, y2 - ny },
+
+        { x1 + nx, y1 + ny },
+        { x2 - nx, y2 - ny },
+        { x1 - nx, y1 - ny }
+    };
+
+    glBindVertexArray(lineVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
 }

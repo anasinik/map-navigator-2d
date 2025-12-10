@@ -33,5 +33,6 @@ public:
 
     float savedOffsetX = 0.5f;
     float savedOffsetY = 0.5f;
-    bool hasSavedOffset = false;
+    float savedViewFraction = 0.5f;
+    bool zoomToggled = false;
 };

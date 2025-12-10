@@ -7,7 +7,8 @@
 
 int main()
 {
-    glfwInit();
+    if (!glfwInit()) return endProgram("GLFW init failed");
+
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -15,35 +16,27 @@ int main()
     GLFWmonitor* primary = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(primary);
 
-    GLFWwindow* window = glfwCreateWindow(
-        mode->width,
-        mode->height,
-        "MapNavigator2D",
-        NULL,
-        NULL
-    );
-    if (!window) return endProgram("Window initialization failed.");
+    GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "MapNavigator2D", NULL, NULL);
+    if (!window) return endProgram("Window creation failed");
 
     glfwMakeContextCurrent(window);
 
     if (glewInit() != GLEW_OK)
-        return endProgram("GLEW initialization failed.");
+        return endProgram("GLEW init failed");
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glClearColor(0.757f, 0.761f, 0.753f, 1.0f);
 
-    unsigned int shaderProgram = createShader(
-        "shaders/vertex_shader.vert",
-        "shaders/fragment_shader.frag"
-    );
-
+    unsigned int shaderProgram = createShader("shaders/vertex_shader.vert", "shaders/fragment_shader.frag");
     glUseProgram(shaderProgram);
     glUniform1i(glGetUniformLocation(shaderProgram, "uTexture"), 0);
 
     Map map("textures/novi-sad-map.jpg");
     Overlay overlay("textures/pin.png", "textures/walking_icon.png");
+    overlay.loadFont("fonts/arial.ttf", 24);
+
     map.viewFraction = 0.5f;
     overlay.setWalkingMode(true);
 
@@ -51,24 +44,23 @@ int main()
     map.offsetX_norm = 0.5f - map.viewFraction / 2.0f;
     map.offsetY_norm = 0.5f - map.viewFraction / 2.0f;
 
-
-    // MAIN LOOP
     double lastTime = glfwGetTime();
     bool rWasPressed = false;
+    bool clickHandled = false;
     double mouseX, mouseY;
-    static bool clickHandled = false;
+    bool mapClickHandled = false;
 
     int fbW, fbH;
     glfwGetFramebufferSize(window, &fbW, &fbH);
     glViewport(0, 0, fbW, fbH);
-    
+
     while (!glfwWindowShouldClose(window))
     {
-        double now = glfwGetTime();
-        float deltaTime = (float)(now - lastTime);
-        lastTime = now;
+        double initFrameTime = glfwGetTime();
+        float deltaTime = (float)(initFrameTime - lastTime);
+        lastTime = initFrameTime;
 
-        // WALKING MOVEMENT
+        // WALKING MODE
         if (overlay.isWalkingMode())
         {
             float dxPix = 0.0f, dyPix = 0.0f;
@@ -82,10 +74,8 @@ int main()
             map.walkedDistancePixels += map.applyMovementAndMeasure(dxPix, dyPix, fbW, fbH);
         }
 
-        // MOUSE CLICK FOR WALK ICON
-        static bool clickHandled = false;
+        // MOUSE
         glfwGetCursorPos(window, &mouseX, &mouseY);
-
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
         {
             if (!clickHandled &&
@@ -94,20 +84,19 @@ int main()
                 mouseY >= overlay.walkIconY_px &&
                 mouseY <= overlay.walkIconY_px + overlay.walkIconHeight_px)
             {
-                // SAVE OFFSET IF EXITING WALKING MODE
+                // save offset if exiting walking mode
                 if (overlay.isWalkingMode())
                 {
                     map.savedOffsetX = map.offsetX_norm;
                     map.savedOffsetY = map.offsetY_norm;
-                    map.hasSavedOffset = true;
+                    map.savedViewFraction = true;
                 }
 
-                // TOGGLE MODE
                 overlay.setWalkingMode(!overlay.isWalkingMode());
                 map.viewFraction = overlay.isWalkingMode() ? 0.5f : 1.0f;
 
-                // RESTORE OFFSET IF RETURNING TO WALKING MODE
-                if (overlay.isWalkingMode() && map.hasSavedOffset)
+                // restore offset if returning to walking mode
+                if (overlay.isWalkingMode() && map.savedViewFraction)
                 {
                     map.offsetX_norm = map.savedOffsetX;
                     map.offsetY_norm = map.savedOffsetY;
@@ -118,38 +107,78 @@ int main()
         }
         else clickHandled = false;
 
-        // KEY R TO TOGGLE WALKING MODE
-        if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
+        // R key
+        if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS && !rWasPressed)
         {
-            if (!rWasPressed)
+            overlay.setWalkingMode(!overlay.isWalkingMode());
+
+            if (!map.zoomToggled)
             {
-                if (overlay.isWalkingMode())
-                {
-                    map.savedOffsetX = map.offsetX_norm;
-                    map.savedOffsetY = map.offsetY_norm;
-                    map.hasSavedOffset = true;
-                }
+                map.savedViewFraction = map.viewFraction;
+                map.savedOffsetX = map.offsetX_norm;
+                map.savedOffsetY = map.offsetY_norm;
 
-                overlay.setWalkingMode(!overlay.isWalkingMode());
-                map.viewFraction = overlay.isWalkingMode() ? 0.5f : 1.0f;
+                map.viewFraction = 1.0f;
+                map.offsetX_norm = 0.0f;
+                map.offsetY_norm = 0.0f;
 
-                if (overlay.isWalkingMode() && map.hasSavedOffset)
-                {
-                    map.offsetX_norm = map.savedOffsetX;
-                    map.offsetY_norm = map.savedOffsetY;
-                }
+                map.zoomToggled = true;
             }
+            else
+            {
+                map.viewFraction = map.savedViewFraction;
+                map.offsetX_norm = map.savedOffsetX;
+                map.offsetY_norm = map.savedOffsetY;
+
+                map.zoomToggled = false;
+            }
+
             rWasPressed = true;
         }
-        else rWasPressed = false;
+        else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_RELEASE)
+        {
+            rWasPressed = false;
+        }
 
-        // RENDERING
+        // MEASUREMENT POINTS
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+        {
+            if (!mapClickHandled)
+            {
+                // ignore if click on walking icon?
+                if (!(mouseX >= overlay.walkIconX_px &&
+                    mouseX <= overlay.walkIconX_px + overlay.walkIconWidth_px &&
+                    mouseY >= overlay.walkIconY_px &&
+                    mouseY <= overlay.walkIconY_px + overlay.walkIconHeight_px))
+                {
+                    if (map.viewFraction == 1.0f) // only if not in walking mode
+                    {
+                        overlay.addMeasurementPoint(
+                            (float)mouseX / fbW,
+                            1.0f - (float)mouseY / fbH, // invert y
+                            (float)fbW,
+                            (float)fbH
+                        );
+                    }
+
+                    clickHandled = true;
+                }
+                mapClickHandled = true;
+            }
+        }
+        else
+        {
+            mapClickHandled = false;
+        }
+
+
+
         glClear(GL_COLOR_BUFFER_BIT);
 
+        glUseProgram(shaderProgram);
         glUniform1i(glGetUniformLocation(shaderProgram, "uIgnoreTransform"), false);
         map.bindShaderTransform(shaderProgram, fbW, fbH);
 
-        glUseProgram(shaderProgram);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, map.getTextureID());
         glBindVertexArray(map.getVAO());
@@ -157,9 +186,8 @@ int main()
 
         overlay.drawPin(shaderProgram, fbW, fbH);
         overlay.drawWalkIcon(shaderProgram, fbW, fbH);
-        overlay.loadFont("fonts/arial.ttf", 24);
+        overlay.drawMeasurements(shaderProgram, fbW, fbH);
 
-        // DISPLAY WALKING DISTANCE
         if (overlay.isWalkingMode())
         {
             overlay.drawFilledRect(120, fbH - 150, 300, 40, 0, 0, 0, fbW, fbH);
@@ -175,4 +203,3 @@ int main()
     glfwTerminate();
     return 0;
 }
-

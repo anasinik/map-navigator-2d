@@ -34,9 +34,14 @@
     <None Include="shaders\fragment_shader.frag" />
     <None Include="shaders\text.vert" />
     <None Include="shaders\text.frag" />
+    <None Include="shaders\line.vert" />
+    <None Include="shaders\line.frag" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="textures\novi-sad-map.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="textures\compas.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
@@ -48,6 +53,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\overlay.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\point.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
