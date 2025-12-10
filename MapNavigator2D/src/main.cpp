@@ -56,6 +56,10 @@ int main()
 
     while (!glfwWindowShouldClose(window))
     {
+        // EXIT ON ESC
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) 
+            glfwSetWindowShouldClose(window, true);
+
         double initFrameTime = glfwGetTime();
         float deltaTime = (float)(initFrameTime - lastTime);
         lastTime = initFrameTime;
@@ -202,6 +206,8 @@ int main()
 
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        while (glfwGetTime() - initFrameTime < 1 / 75.0) {}
     }
 
     glfwDestroyWindow(window);
