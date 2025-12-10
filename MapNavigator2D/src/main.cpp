@@ -195,6 +195,11 @@ int main()
             overlay.drawText(dist.c_str(), 150, 140, 1.0f, 1, 1, 1, fbW, fbH);
         }
 
+        // AUTHOR
+        overlay.drawFilledRect(fbW - 380 - 20, fbH - 1020 - 20, 380, 45, 0, 0, 0, fbW, fbH);
+        std::string author = "ANA SINIK, SV11/2022";
+        overlay.drawText(author.c_str(), fbW - 380 - 20 + 15, fbH - 45 - 20 + 45 - 10, 1.0f, 1, 1, 1, fbW, fbH);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
