@@ -60,6 +60,10 @@ int main()
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) 
             glfwSetWindowShouldClose(window, true);
 
+        // CURSOR
+        GLFWcursor* compasCursor = loadImageToCursor("textures/compas.png");
+        glfwSetCursor(window, compasCursor);
+
         double initFrameTime = glfwGetTime();
         float deltaTime = (float)(initFrameTime - lastTime);
         lastTime = initFrameTime;
