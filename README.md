@@ -65,8 +65,11 @@ This project is a 2D graphical application for measuring movement on a map, deve
 ## Compilation & Execution
 
 1. Clone the repository:
+
+   ```
    git clone https://github.com/anasinik/map-navigator-2d
    cd map-navigator-2d
+   ```
 
 2. Build with CMake (Linux / Windows / Mac):
 
