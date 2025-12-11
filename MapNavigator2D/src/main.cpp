@@ -155,7 +155,6 @@ int main()
         {
             if (!mapClickHandled)
             {
-                // ignore if click on walking icon?
                 if (!(mouseX >= overlay.iconX_px &&
                     mouseX <= overlay.iconX_px + overlay.iconWidth_px &&
                     mouseY >= overlay.iconY_px &&
@@ -163,13 +162,23 @@ int main()
                 {
                     if (map.viewFraction == 1.0f) // only if not in walking mode
                     {
-                        overlay.addMeasurementPoint(
-                            (float)mouseX / fbW,
-                            1.0f - (float)mouseY / fbH, // invert y
+                        bool removed = overlay.removeMeasurementPointAt(
+                            (float)mouseX,          
+                            (float)mouseY,          
                             (float)fbW,
                             (float)fbH
                         );
+
+                        if (!removed) {
+                            overlay.addMeasurementPoint(
+                                (float)mouseX / fbW,
+                                1.0f - (float)mouseY / fbH, 
+                                (float)fbW,
+                                (float)fbH
+                            );
+                        }
                     }
+
 
                     clickHandled = true;
                 }

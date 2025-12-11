@@ -435,8 +435,10 @@ void Overlay::addMeasurementPoint(float xNorm, float yNorm, float mapWidth, floa
     measurementPoints.push_back(newPoint);
 }
 
-void Overlay::removeMeasurementPointAt(float x_px, float y_px, float mapWidth, float mapHeight)
+bool Overlay::removeMeasurementPointAt(float x_px, float y_px, float mapWidth, float mapHeight)
 {
+    y_px = mapHeight - y_px;
+
     for (size_t i = 0; i < measurementPoints.size(); ++i) {
         float px = measurementPoints[i].xNorm * mapWidth;
         float py = measurementPoints[i].yNorm * mapHeight;
@@ -445,18 +447,33 @@ void Overlay::removeMeasurementPointAt(float x_px, float y_px, float mapWidth, f
         float dy = y_px - py;
 
         if (sqrt(dx * dx + dy * dy) <= pointRadius) {
-            measurementPoints.erase(measurementPoints.begin() + i);
 
-            totalMeasuredDistance = 0.0f;
-            for (size_t j = 1; j < measurementPoints.size(); ++j) {
-                float dx = (measurementPoints[j].xNorm - measurementPoints[j - 1].xNorm) * mapWidth;
-                float dy = (measurementPoints[j].yNorm - measurementPoints[j - 1].yNorm) * mapHeight;
-                totalMeasuredDistance += sqrt(dx * dx + dy * dy);
+            if (i > 0) {
+                float dxPrev = (measurementPoints[i].xNorm - measurementPoints[i - 1].xNorm) * mapWidth;
+                float dyPrev = (measurementPoints[i].yNorm - measurementPoints[i - 1].yNorm) * mapHeight;
+                totalMeasuredDistance -= sqrt(dxPrev * dxPrev + dyPrev * dyPrev);
             }
-            break;
+
+            if (i < measurementPoints.size() - 1) {
+                float dxNext = (measurementPoints[i + 1].xNorm - measurementPoints[i].xNorm) * mapWidth;
+                float dyNext = (measurementPoints[i + 1].yNorm - measurementPoints[i].yNorm) * mapHeight;
+                totalMeasuredDistance -= sqrt(dxNext * dxNext + dyNext * dyNext);
+
+                if (i > 0) {
+                    float dxReconnect = (measurementPoints[i + 1].xNorm - measurementPoints[i - 1].xNorm) * mapWidth;
+                    float dyReconnect = (measurementPoints[i + 1].yNorm - measurementPoints[i - 1].yNorm) * mapHeight;
+                    totalMeasuredDistance += sqrt(dxReconnect * dxReconnect + dyReconnect * dyReconnect);
+                }
+            }
+
+            measurementPoints.erase(measurementPoints.begin() + i);
+            return true;
         }
     }
+
+    return false;
 }
+
 
 
 void Overlay::drawMeasurements(unsigned int shaderProgram, int winW, int winH)
@@ -479,7 +496,6 @@ void Overlay::drawMeasurements(unsigned int shaderProgram, int winW, int winH)
 
 }
 
-
 void Overlay::drawLine(float x1, float y1, float x2, float y2, int windowWidth, int windowHeight)
 {
     glUseProgram(lineShader);
@@ -491,7 +507,7 @@ void Overlay::drawLine(float x1, float y1, float x2, float y2, int windowWidth, 
        -1, -1, 0, 1
     };
     glUniformMatrix4fv(glGetUniformLocation(lineShader, "uProjection"), 1, GL_FALSE, proj);
-    glUniform3f(glGetUniformLocation(lineShader, "uColor"), 1.0f, 0.0f, 0.0f); // crvena linija
+    glUniform3f(glGetUniformLocation(lineShader, "uColor"), 1.0f, 0.0f, 0.0f);
 
     float thickness = 5.0f;
     float dx = x2 - x1;

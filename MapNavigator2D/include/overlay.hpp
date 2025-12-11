@@ -44,7 +44,7 @@ public:
     float iconHeight_px = 0.0f;
 
     void addMeasurementPoint(float x_norm, float y_norm, float mapWidth, float mapHeight);
-    void removeMeasurementPointAt(float x_px, float y_px, float mapWidth, float mapHeight);
+    bool removeMeasurementPointAt(float x_px, float y_px, float mapWidth, float mapHeight);
 
     void drawMeasurements(unsigned int shaderProgram, int winW, int winH);
     void setMeasurementMode(bool b) { measurementMode = b; }
