@@ -478,6 +478,8 @@ bool Overlay::removeMeasurementPointAt(float x_px, float y_px, float mapWidth, f
 
 void Overlay::drawMeasurements(unsigned int shaderProgram, int winW, int winH)
 {
+    if (walkingMode) return;
+
     for (size_t i = 0; i < measurementPoints.size(); i++) {
         float x = measurementPoints[i].xNorm * winW;
         float y = measurementPoints[i].yNorm * winH;
