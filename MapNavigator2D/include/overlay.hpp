@@ -21,7 +21,7 @@ public:
         float r, float g, float b,
         int winW, int winH);
     void drawFilledRect(float x, float y, float w, float h,
-        float r, float g, float b,
+        float r, float g, float b, float a,
         int screenW, int screenH);
     bool loadFont(const char* path, int fontSize);
     void drawLine(float x1, float y1, float x2, float y2, int windowWidth, int windowHeight);

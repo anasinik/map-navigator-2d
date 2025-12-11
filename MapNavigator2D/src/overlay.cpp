@@ -227,7 +227,6 @@ void Overlay::drawText(const char* text,
     float r, float g, float b,
     int winW, int winH)
 {
-    if (!textShader) return;
     if (Characters.empty()) return;
 
     GLboolean wasBlendEnabled = glIsEnabled(GL_BLEND);
@@ -239,6 +238,7 @@ void Overlay::drawText(const char* text,
     glUseProgram(textShader);
 
     glUniform1i(glGetUniformLocation(textShader, "text"), 0);
+    glUniform1i(glGetUniformLocation(textShader, "useTexture"), GL_TRUE);
 
     float left = 0.0f;
     float right = (float)winW;
@@ -369,11 +369,10 @@ bool Overlay::loadFont(const char* path, int fontSize)
 }
 
 void Overlay::drawFilledRect(float x, float y, float w, float h,
-    float r, float g, float b,
+    float r, float g, float b, float a,
     int screenW, int screenH)
 {
-    if (!textShader) return;
-
+    
     float verts[6][4] = {
         { x,     y,     0.0f, 0.0f },
         { x + w, y,     0.0f, 0.0f },
@@ -399,7 +398,7 @@ void Overlay::drawFilledRect(float x, float y, float w, float h,
     };
     glUniformMatrix4fv(glGetUniformLocation(textShader, "projection"), 1, GL_FALSE, proj);
 
-    glUniform3f(glGetUniformLocation(textShader, "textColor"), r, g, b);
+    glUniform4f(glGetUniformLocation(textShader, "textColor"), r, g, b, a);
     glUniform1i(glGetUniformLocation(textShader, "useTexture"), GL_FALSE);
 
     glBindVertexArray(textVAO);

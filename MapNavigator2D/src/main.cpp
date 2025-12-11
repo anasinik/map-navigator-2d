@@ -210,18 +210,18 @@ int main()
 
         if (overlay.isWalkingMode())
         {
-            overlay.drawFilledRect(120, fbH - 150, 300, 40, 0, 0, 0, fbW, fbH);
+            overlay.drawFilledRect(120, fbH - 150, 300, 40, 0, 0, 0, 0.5f, fbW, fbH);
             std::string dist = "DISTANCE: " + std::to_string((int)map.walkedDistancePixels) + " px";
             overlay.drawText(dist.c_str(), 150, 140, 1.0f, 1, 1, 1, fbW, fbH);
         }
         else {
-            overlay.drawFilledRect(120, fbH - 150, 300, 40, 0, 0, 0, fbW, fbH);
+            overlay.drawFilledRect(120, fbH - 150, 300, 40, 0, 0, 0, 0.5f, fbW, fbH);
             overlay.drawText(("TOTAL: " + std::to_string((int)overlay.getTotalMeasuredDistance()) + " px").c_str(),
                 150, 140, 1.0f, 1, 1, 1, fbW, fbH);
         }
 
         // AUTHOR
-        overlay.drawFilledRect(fbW - 380 - 20, fbH - 1020 - 20, 380, 45, 0, 0, 0, fbW, fbH);
+        overlay.drawFilledRect(fbW - 380 - 20, fbH - 1020 - 20, 380, 45, 0, 0, 0, 0.5f, fbW, fbH);
         std::string author = "ANA SINIK, SV11/2022";
         overlay.drawText(author.c_str(), fbW - 350 - 20 + 15, fbH - 45, 1.0f, 1, 1, 1, fbW, fbH);
 
