@@ -6,6 +6,7 @@ on:
       - main
       - dev
       - feat/*
+      - fix/*
   pull_request:
     branches:
       - main
@@ -23,8 +24,18 @@ jobs:
         with:
           vs-version: "latest"
 
+      - name: Install vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git
+          .\vcpkg\bootstrap-vcpkg.bat
+
+      - name: Install GLEW, GLFW and FreeType
+        run: |
+          .\vcpkg\vcpkg.exe install glew:x64-windows glfw3:x64-windows freetype:x64-windows
+          .\vcpkg\vcpkg.exe integrate install
+
       - name: Restore NuGet packages
         run: nuget restore MapNavigator2D.sln
 
       - name: Build solution
-        run: msbuild MapNavigator2D.sln /p:Configuration=Release /p:Platform=x64
+        run: msbuild MapNavigator2D.sln /p:Configuration=Release /p:Platform=x64 /p:VcpkgTriplet=x64-windows
