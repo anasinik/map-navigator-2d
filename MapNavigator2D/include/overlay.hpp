@@ -7,6 +7,10 @@
 #include <vector>
 #include "../include/point.hpp"
 
+#include "IconRenderer.hpp"
+#include "TextRenderer.hpp"
+#include "MeasurementManager.hpp"
+
 class Overlay {
 public:
     Overlay(const char* pinPath, const char* walkingIconPath, const char* rulerIconPath);
@@ -40,7 +44,7 @@ public:
 
     float iconX_px = 0.0f;
     float iconY_px = 0.0f;
-    float iconWidth_px = 0.0f; 
+    float iconWidth_px = 0.0f;
     float iconHeight_px = 0.0f;
 
     void addMeasurementPoint(float x_norm, float y_norm, float mapWidth, float mapHeight);
@@ -49,31 +53,31 @@ public:
     void drawMeasurements(unsigned int shaderProgram, int winW, int winH);
     void setMeasurementMode(bool b) { measurementMode = b; }
     bool isMeasurementMode() const { return measurementMode; }
-    float getTotalMeasuredDistance() const { return totalMeasuredDistance; }
-    void setTotalMeasuredDistance(float total) { this->totalMeasuredDistance = total; }
-    std::vector<MeasurementPoint> getMeasurementPoints() const { return measurementPoints; }
+    float getTotalMeasuredDistance() const { return measurementManager.getTotalDistance(); }
+    void setTotalMeasuredDistance(float total) { measurementManager.setTotalDistance(total); }
+    std::vector<MeasurementPoint> getMeasurementPoints() const { return measurementManager.getPoints(); }
 
     unsigned int lineShader = 0;
     unsigned int lineVAO = 0, lineVBO = 0;
- 
+
 private:
     bool walkingMode = false;
+
+    IconRenderer iconRenderer;
+    TextRenderer textRenderer;
+    MeasurementManager measurementManager;
 
     unsigned int pinTextureID = 0, walkTextureID = 0, rulerTextureID = 0;
     unsigned int pinVAO = 0, pinVBO = 0, pinEBO = 0;
     unsigned int walkVAO = 0, walkVBO = 0, walkEBO = 0;
     unsigned int rulerVAO = 0, rulerVBO = 0, rulerEBO = 0;
 
-    // text
     unsigned int textVAO = 0, textVBO = 0;
     unsigned int textShader = 0;
     unsigned int whiteTexture = 0;
 
     float pinSize = 0.05f;
     float iconSize = 0.5f;
-
-    std::vector<MeasurementPoint> measurementPoints;
-    float totalMeasuredDistance = 0.0f;
 
     bool measurementMode = false;
     float pointRadius = 6.0f;

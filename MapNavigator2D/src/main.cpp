@@ -1,9 +1,9 @@
 ﻿#include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#include "../include/util.hpp"
-#include "../include/map.hpp"
-#include "../include/overlay.hpp"
+#include "../include/Util.hpp"
+#include "../include/Map.hpp"
+#include "../include/Overlay.hpp"
 
 int main()
 {
@@ -42,7 +42,6 @@ int main()
     map.viewFraction = 0.5f;
     overlay.setWalkingMode(true);
 
-    // initially centered
     map.offsetX_norm = 0.5f - map.viewFraction / 2.0f;
     map.offsetY_norm = 0.5f - map.viewFraction / 2.0f;
 

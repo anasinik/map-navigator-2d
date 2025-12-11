@@ -1,4 +1,4 @@
-﻿#include "../include/map.hpp"
+﻿#include "../include/Map.hpp"
 #include "../include/util.hpp"
 #include "../include/overlay.hpp"
 
