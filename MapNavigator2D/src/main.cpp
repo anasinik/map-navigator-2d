@@ -44,22 +44,25 @@ static void toggleWalkingMode(Overlay& overlay, Map& map)
 {
     bool entering = !overlay.isWalkingMode();
 
-    // Save if exiting walking mode
-    if (overlay.isWalkingMode()) {
+    if (!entering)  // exiting walking mode
+    {
         map.savedOffsetX = map.offsetX_norm;
         map.savedOffsetY = map.offsetY_norm;
-        map.savedViewFraction = true;
+
+        map.viewFraction = 1.0f;
+        overlay.setWalkingMode(false);
+        return;
     }
 
-    overlay.setWalkingMode(entering);
-    map.viewFraction = entering ? 0.5f : 1.0f;
+    // entering walking mode
+    overlay.setWalkingMode(true);
+    map.viewFraction = 0.5f;
 
-    // Restore if re-entering walking mode
-    if (entering && map.savedViewFraction) {
-        map.offsetX_norm = map.savedOffsetX;
-        map.offsetY_norm = map.savedOffsetY;
-    }
+    map.offsetX_norm = map.savedOffsetX;
+    map.offsetY_norm = map.savedOffsetY;
 }
+
+
 
 static void handleIconClick(Overlay& overlay, Map& map, bool& clickHandled)
 {
@@ -71,9 +74,8 @@ static void handleIconClick(Overlay& overlay, Map& map, bool& clickHandled)
 
 static void toggleZoom(Map& map)
 {
-    if (!map.zoomToggled)
+    if (map.zoomToggled)
     {
-        map.savedViewFraction = map.viewFraction;
         map.savedOffsetX = map.offsetX_norm;
         map.savedOffsetY = map.offsetY_norm;
 
@@ -84,7 +86,6 @@ static void toggleZoom(Map& map)
     }
     else
     {
-        map.viewFraction = map.savedViewFraction;
         map.offsetX_norm = map.savedOffsetX;
         map.offsetY_norm = map.savedOffsetY;
         map.zoomToggled = false;

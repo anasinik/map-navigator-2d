@@ -138,6 +138,9 @@ double Map::applyMovementAndMeasure(float dxPix, float dyPix, int windowWidth, i
     if (offsetY_norm < minY) offsetY_norm = minY;
     if (offsetY_norm > maxY) offsetY_norm = maxY;
 
+    savedOffsetX = offsetX_norm;
+    savedOffsetY = offsetY_norm;
+
     float deltaX_norm = offsetX_norm - oldX;
     float deltaY_norm = offsetY_norm - oldY;
 
