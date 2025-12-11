@@ -5,10 +5,135 @@
 #include "../include/Map.hpp"
 #include "../include/Overlay.hpp"
 
+static bool mouseInsideIcon(double mx, double my, const Overlay& overlay)
+{
+    return (mx >= overlay.iconX_px &&
+        mx <= overlay.iconX_px + overlay.iconWidth_px &&
+        my >= overlay.iconY_px &&
+        my <= overlay.iconY_px + overlay.iconHeight_px);
+}
+
+static void handleEscape(GLFWwindow* window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+}
+
+static float computeDelta(double& lastTime)
+{
+    double now = glfwGetTime();
+    float dt = float(now - lastTime);
+    lastTime = now;
+    return dt;
+}
+
+static void handleWalkingMovement(GLFWwindow* window, Map& map, float dt, int fbW, int fbH)
+{
+    float dx = 0.0f, dy = 0.0f;
+    float speed = map.moveSpeedPixels;
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) dy -= speed * dt;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) dy += speed * dt;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) dx -= speed * dt;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) dx += speed * dt;
+
+    map.walkedDistancePixels += map.applyMovementAndMeasure(dx, dy, fbW, fbH);
+}
+
+static void toggleWalkingMode(Overlay& overlay, Map& map)
+{
+    bool entering = !overlay.isWalkingMode();
+
+    // Save if exiting walking mode
+    if (overlay.isWalkingMode()) {
+        map.savedOffsetX = map.offsetX_norm;
+        map.savedOffsetY = map.offsetY_norm;
+        map.savedViewFraction = true;
+    }
+
+    overlay.setWalkingMode(entering);
+    map.viewFraction = entering ? 0.5f : 1.0f;
+
+    // Restore if re-entering walking mode
+    if (entering && map.savedViewFraction) {
+        map.offsetX_norm = map.savedOffsetX;
+        map.offsetY_norm = map.savedOffsetY;
+    }
+}
+
+static void handleIconClick(Overlay& overlay, Map& map, bool& clickHandled)
+{
+    if (!clickHandled) {
+        toggleWalkingMode(overlay, map);
+        clickHandled = true;
+    }
+}
+
+static void toggleZoom(Map& map)
+{
+    if (!map.zoomToggled)
+    {
+        map.savedViewFraction = map.viewFraction;
+        map.savedOffsetX = map.offsetX_norm;
+        map.savedOffsetY = map.offsetY_norm;
+
+        map.viewFraction = 1.0f;
+        map.offsetX_norm = 0.0f;
+        map.offsetY_norm = 0.0f;
+        map.zoomToggled = true;
+    }
+    else
+    {
+        map.viewFraction = map.savedViewFraction;
+        map.offsetX_norm = map.savedOffsetX;
+        map.offsetY_norm = map.savedOffsetY;
+        map.zoomToggled = false;
+    }
+}
+
+static void handleRkey(GLFWwindow* window, Map& map, Overlay& overlay, bool& rWasPressed)
+{
+    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS && !rWasPressed)
+    {
+        toggleZoom(map);
+        toggleWalkingMode(overlay, map);
+
+        rWasPressed = true;
+    }
+    else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_RELEASE)
+        rWasPressed = false;
+}
+
+
+
+static void handleMeasurementClick(
+    Overlay& overlay, Map& map, double mx, double my,
+    int fbW, int fbH, bool& clickHandled, bool& mapClickHandled)
+{
+    if (map.viewFraction != 1.0f) return;  // Only allowed in full mode
+
+    if (!mapClickHandled)
+    {
+        bool removed = overlay.removeMeasurementPointAt(mx, my, (float)fbW, (float)fbH);
+        if (!removed)
+        {
+            overlay.addMeasurementPoint(
+                float(mx) / fbW,
+                1.0f - float(my) / fbH,
+                (float)fbW, (float)fbH
+            );
+        }
+
+        clickHandled = true;
+        mapClickHandled = true;
+    }
+}
+
 int main()
 {
     if (!glfwInit()) return endProgram("GLFW init failed");
 
+    // Window setup
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -17,7 +142,6 @@ int main()
     const GLFWvidmode* mode = glfwGetVideoMode(primary);
 
     GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "MapNavigator2D", primary, NULL);
-
     if (!window) return endProgram("Window creation failed");
 
     glfwMakeContextCurrent(window);
@@ -31,11 +155,13 @@ int main()
 
     glClearColor(0.757f, 0.761f, 0.753f, 1.0f);
 
+    // Resources
     unsigned int shaderProgram = createShader("shaders/vertex_shader.vert", "shaders/fragment_shader.frag");
     glUseProgram(shaderProgram);
     glUniform1i(glGetUniformLocation(shaderProgram, "uTexture"), 0);
 
     Map map("textures/novi-sad-map.jpg");
+
     Overlay overlay("textures/pin.png", "textures/walking_icon.png", "textures/ruler.png");
     overlay.loadFont("fonts/arial.ttf", 24);
 
@@ -46,151 +172,46 @@ int main()
     map.offsetY_norm = 0.5f - map.viewFraction / 2.0f;
 
     double lastTime = glfwGetTime();
-    bool rWasPressed = false;
     bool clickHandled = false;
-    double mouseX, mouseY;
     bool mapClickHandled = false;
+    bool rWasPressed = false;
 
     int fbW, fbH;
     glfwGetFramebufferSize(window, &fbW, &fbH);
-    glViewport(0, 0, fbW, fbH);
 
     while (!glfwWindowShouldClose(window))
     {
-        // EXIT ON ESC
-        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) 
-            glfwSetWindowShouldClose(window, true);
+        handleEscape(window);
 
-        // CURSOR
-        GLFWcursor* compasCursor = loadImageToCursor("textures/compas.png");
-        glfwSetCursor(window, compasCursor);
+        GLFWcursor* compass = loadImageToCursor("textures/compas.png");
+        glfwSetCursor(window, compass);
 
-        double initFrameTime = glfwGetTime();
-        float deltaTime = (float)(initFrameTime - lastTime);
-        lastTime = initFrameTime;
+        float dt = computeDelta(lastTime);
 
-        // WALKING MODE
         if (overlay.isWalkingMode())
-        {
-            float dxPix = 0.0f, dyPix = 0.0f;
-            float speed = map.moveSpeedPixels;
+            handleWalkingMovement(window, map, dt, fbW, fbH);
 
-            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) dyPix -= speed * deltaTime;
-            if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) dyPix += speed * deltaTime;
-            if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) dxPix -= speed * deltaTime;
-            if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) dxPix += speed * deltaTime;
+        // Input
+        double mx, my;
+        glfwGetCursorPos(window, &mx, &my);
 
-            map.walkedDistancePixels += map.applyMovementAndMeasure(dxPix, dyPix, fbW, fbH);
-        }
-
-        // MOUSE
-        glfwGetCursorPos(window, &mouseX, &mouseY);
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
         {
-            if (!clickHandled &&
-                mouseX >= overlay.iconX_px &&
-                mouseX <= overlay.iconX_px + overlay.iconWidth_px &&
-                mouseY >= overlay.iconY_px &&
-                mouseY <= overlay.iconY_px + overlay.iconHeight_px)
-            {
-                // save offset if exiting walking mode
-                if (overlay.isWalkingMode())
-                {
-                    map.savedOffsetX = map.offsetX_norm;
-                    map.savedOffsetY = map.offsetY_norm;
-                    map.savedViewFraction = true;
-                }
-
-                overlay.setWalkingMode(!overlay.isWalkingMode());
-                map.viewFraction = overlay.isWalkingMode() ? 0.5f : 1.0f;
-
-                // restore offset if returning to walking mode
-                if (overlay.isWalkingMode() && map.savedViewFraction)
-                {
-                    map.offsetX_norm = map.savedOffsetX;
-                    map.offsetY_norm = map.savedOffsetY;
-                }
-
-                clickHandled = true;
-            }
-        }
-        else clickHandled = false;
-
-        // R key
-        if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS && !rWasPressed)
-        {
-            overlay.setWalkingMode(!overlay.isWalkingMode());
-
-            if (!map.zoomToggled)
-            {
-                map.savedViewFraction = map.viewFraction;
-                map.savedOffsetX = map.offsetX_norm;
-                map.savedOffsetY = map.offsetY_norm;
-
-                map.viewFraction = 1.0f;
-                map.offsetX_norm = 0.0f;
-                map.offsetY_norm = 0.0f;
-
-                map.zoomToggled = true;
-            }
+            if (mouseInsideIcon(mx, my, overlay))
+                handleIconClick(overlay, map, clickHandled);
             else
-            {
-                map.viewFraction = map.savedViewFraction;
-                map.offsetX_norm = map.savedOffsetX;
-                map.offsetY_norm = map.savedOffsetY;
-
-                map.zoomToggled = false;
-            }
-
-            rWasPressed = true;
-        }
-        else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_RELEASE)
-        {
-            rWasPressed = false;
-        }
-
-        // MEASUREMENT POINTS
-        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-        {
-            if (!mapClickHandled)
-            {
-                if (!(mouseX >= overlay.iconX_px &&
-                    mouseX <= overlay.iconX_px + overlay.iconWidth_px &&
-                    mouseY >= overlay.iconY_px &&
-                    mouseY <= overlay.iconY_px + overlay.iconHeight_px))
-                {
-                    if (map.viewFraction == 1.0f) // only if not in walking mode
-                    {
-                        bool removed = overlay.removeMeasurementPointAt(
-                            (float)mouseX,          
-                            (float)mouseY,          
-                            (float)fbW,
-                            (float)fbH
-                        );
-
-                        if (!removed) {
-                            overlay.addMeasurementPoint(
-                                (float)mouseX / fbW,
-                                1.0f - (float)mouseY / fbH, 
-                                (float)fbW,
-                                (float)fbH
-                            );
-                        }
-                    }
-
-
-                    clickHandled = true;
-                }
-                mapClickHandled = true;
-            }
+                handleMeasurementClick(overlay, map, mx, my, fbW, fbH, clickHandled, mapClickHandled);
         }
         else
         {
+            clickHandled = false;
             mapClickHandled = false;
         }
 
+        handleRkey(window, map, overlay, rWasPressed);
 
-
+        // Draw
+        glViewport(0, 0, fbW, fbH);
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUseProgram(shaderProgram);
@@ -207,27 +228,23 @@ int main()
         overlay.drawRulerIcon(shaderProgram, fbW, fbH);
         overlay.drawMeasurements(shaderProgram, fbW, fbH);
 
-        if (overlay.isWalkingMode())
-        {
-            overlay.drawFilledRect(120, fbH - 150, 300, 40, 0, 0, 0, 0.5f, fbW, fbH);
-            std::string dist = "DISTANCE: " + std::to_string((int)map.walkedDistancePixels) + " px";
-            overlay.drawText(dist.c_str(), 150, 140, 1.0f, 1, 1, 1, fbW, fbH);
-        }
-        else {
-            overlay.drawFilledRect(120, fbH - 150, 300, 40, 0, 0, 0, 0.5f, fbW, fbH);
-            overlay.drawText(("TOTAL: " + std::to_string((int)overlay.getTotalMeasuredDistance()) + " px").c_str(),
-                150, 140, 1.0f, 1, 1, 1, fbW, fbH);
-        }
+        overlay.drawFilledRect(120, fbH - 150, 300, 40, 0, 0, 0, 0.5f, fbW, fbH);
 
-        // AUTHOR
-        overlay.drawFilledRect(fbW - 380 - 20, fbH - 1020 - 20, 380, 45, 0, 0, 0, 0.5f, fbW, fbH);
-        std::string author = "ANA SINIK, SV11/2022";
-        overlay.drawText(author.c_str(), fbW - 350 - 20 + 15, fbH - 45, 1.0f, 1, 1, 1, fbW, fbH);
+        if (overlay.isWalkingMode())
+            overlay.drawText(("DISTANCE: " + std::to_string((int)map.walkedDistancePixels)).c_str(),
+                150, 140, 1, 1, 1, 1, fbW, fbH);
+        else
+            overlay.drawText(("TOTAL: " + std::to_string((int)overlay.getTotalMeasuredDistance())).c_str(),
+                150, 140, 1, 1, 1, 1, fbW, fbH);
+
+        // Author
+        overlay.drawFilledRect(fbW - 400, fbH - 1040, 380, 45, 0, 0, 0, 0.5f, fbW, fbH);
+        overlay.drawText("ANA SINIK, SV11/2022", fbW - 380, fbH - 45, 1, 1, 1, 1, fbW, fbH);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
 
-        while (glfwGetTime() - initFrameTime < 1 / 75.0) {}
+        while (glfwGetTime() - lastTime < 1 / 75.0) {}
     }
 
     glfwDestroyWindow(window);
